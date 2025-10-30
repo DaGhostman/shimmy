@@ -126,10 +126,12 @@ fn test_cli_parsing() {
             name,
             prompt,
             max_tokens,
+            stream,
         } => {
             assert_eq!(name, "test-model");
             assert_eq!(prompt, "Hello");
             assert_eq!(max_tokens, 50);
+            assert_eq!(stream, false);
         }
         _ => panic!("Expected Generate command"),
     }
