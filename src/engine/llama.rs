@@ -435,7 +435,9 @@ impl LoadedModel for LlamaLoaded {
         ])
         .with_tokens(tokens.iter().copied());
 
-        let mut out = String::new();
+        let mut out: Vec<u8> = Vec::new();
+        let mut out_string = String::new();
+
         let mut all_tokens = tokens;
         for _ in 0..opts.max_tokens {
             // Sample from the last (and only) position with logits
@@ -446,17 +448,19 @@ impl LoadedModel for LlamaLoaded {
             // Use Plaintext to avoid re-tokenizing control tokens into special forms
             let piece = self.model.token_to_str(token, Special::Plaintext)?;
             let start = out.len();
-            out.push_str(&piece);
+            out.append(&mut piece.as_bytes().to_vec());
+            out_string = unsafe { String::from_utf8_unchecked(out.clone()) };
 
             // Check for stop tokens before emitting
             let should_stop = opts
                 .stop_tokens
                 .iter()
-                .any(|stop_token| out.contains(stop_token));
+                .any(|stop_token| out_string.contains(stop_token));
+
             if should_stop {
                 // Remove the stop token from the output
                 for stop_token in &opts.stop_tokens {
-                    if let Some(pos) = out.rfind(stop_token) {
+                    if let Some(pos) = out_string.rfind(stop_token) {
                         out.truncate(pos);
                         break;
                     }
@@ -465,7 +469,7 @@ impl LoadedModel for LlamaLoaded {
             }
 
             if let Some(cb) = on_token.as_mut() {
-                cb(out[start..].to_string());
+                cb(unsafe { String::from_utf8_unchecked(out[start..].to_vec()) });
             }
 
             let mut step = LlamaBatch::new(1, 1);
@@ -473,7 +477,7 @@ impl LoadedModel for LlamaLoaded {
             ctx.decode(&mut step)?;
             all_tokens.push(token);
         }
-        Ok(out)
+        Ok(out_string)
     }
 }
 
