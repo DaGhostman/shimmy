@@ -72,6 +72,8 @@ pub enum Command {
         prompt: String,
         #[arg(long, default_value_t = 64)]
         max_tokens: usize,
+        #[arg(long)]
+        stream: bool,
     },
     /// Show GPU backend information and capabilities
     GpuInfo,
@@ -168,6 +170,7 @@ mod tests {
             "test",
             "--max-tokens",
             "100",
+            "--stream",
         ])
         .unwrap();
         match cli.cmd {
@@ -175,10 +178,12 @@ mod tests {
                 name,
                 prompt,
                 max_tokens,
+                stream,
             } => {
                 assert_eq!(name, "model");
                 assert_eq!(prompt, "test");
                 assert_eq!(max_tokens, 100);
+                assert_eq!(stream, true);
             }
             _ => panic!("Expected Generate command"),
         }

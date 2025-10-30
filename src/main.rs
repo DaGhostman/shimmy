@@ -23,6 +23,7 @@ mod util {
 
 use clap::Parser;
 use model_registry::{ModelEntry, Registry};
+use std::io::Write;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tracing::info;
@@ -490,6 +491,7 @@ async fn main() -> anyhow::Result<()> {
             name,
             prompt,
             max_tokens,
+            stream,
         } => {
             let Some(spec) = state.registry.to_spec(&name) else {
                 anyhow::bail!("no model {name}");
@@ -503,10 +505,19 @@ async fn main() -> anyhow::Result<()> {
                         stream: false,
                         ..Default::default()
                     },
-                    None,
+                    if stream {
+                        Some(Box::new(&|s| {
+                            print!("{s}");
+                            std::io::stdout().flush().unwrap();
+                        }))
+                    } else {
+                        None
+                    },
                 )
                 .await?;
-            println!("{}", out);
+            if !stream {
+                println!("{}", out);
+            }
         }
         cli::Command::GpuInfo => {
             println!("🖥️  GPU Backend Information");
